@@ -1,6 +1,6 @@
 TediCross
 =========
-TediCross is a bot which bridges a chat in [Telegram](https://telegram.org) with a channel in [Discord](https://discordapp.com/).
+TediCross is a bot which bridges a chat in [Telegram](https://telegram.org) with a channel in [Discord](https://discord.com/).
 
 There is no public TediCross bot. You need to host it yourself. To host a bot, you need [nodejs](https://nodejs.org). The bot requires NodeJS 16 or higher
 
@@ -24,14 +24,14 @@ Step by step installation:
 Setting up the bot requires basic knowledge of the command line, which is bash or similar on Linux/Mac, and cmd.exe in Windows
 
  1. Install [nodejs](https://nodejs.org). TediCross requires at least node version 16
- 2. Clone this git repo, or download it as a zip or whatever
+ 2. Download the latest [release](https://github.com/TediCross/TediCross/releases/latest)
  3. Open a terminal and enter the repo with the [`cd`](https://en.wikipedia.org/wiki/Cd_(command)) command. Something like `cd Downloads/TediCross-master`. Your exact command may differ
- 4. Run the command `npm install --production`
+ 4. Run the command `npm install --omit=dev`
  5. Make a copy of the file `example.settings.yaml` and name it `settings.yaml`
- 6. Aquire a bot token for Telegram ([How to create a Telegram bot](https://core.telegram.org/bots#3-how-do-i-create-a-bot)) and put it in the settings file
+ 6. Acquire a bot token for Telegram ([How to create a Telegram bot](https://core.telegram.org/bots#3-how-do-i-create-a-bot)) and put it in the settings file
    - The Telegram bot must be able to access all messages. Talk to [@BotFather](https://t.me/BotFather) to disable privacy mode for the bot
    - Do NOT use another bot you already have running. That will cause all sorts of weird problems. Make a new one
- 7. Aquire a bot token for Discord ([How to create a Discord bot](https://discordjs.guide/preparations/setting-up-a-bot-application.html)), enable the `Message Content Intent` under `Bot` > `Privileged Gateway Intents` and put it in the settings file under `discord.token`. **NOTE** that the token is NOT the "Client Secret". The token is under the section "Bot" further down the page
+ 7. Acquire a bot token for Discord ([How to create a Discord bot](https://discordjs.guide/preparations/setting-up-a-bot-application.html)), enable the `Message Content Intent` under `Bot` > `Privileged Gateway Intents` and put it in the settings file under `discord.token`. **NOTE** that the token is NOT the "Client Secret". The token is under the section "Bot" further down the page
    - Do NOT use another bot you already have running. That will cause all sorts of weird problems. Make a new one
  8. Add the Telegram bot to the Telegram chat
    - If the Telegram chat is a supergroup, the bot also needs to be admin of the group, or it won't get the messages. The creator of the supergroup is able to give it admin rights
@@ -50,13 +50,22 @@ Settings
 
 As mentioned in the step by step installation guide, there is a settings file. Here is a description of what the settings do.
 
-* `telegram`: Object authorizing and defining the Telegram bot's behaviour
+* `telegram`: Object authorizing and defining the Telegram bot's behavior
 	* `token`: The Telegram bot's token. It is needed for the bot to authenticate to the Telegram servers and be able to send and receive messages. If set to `"env"`, TediCross will read the token from the environment variable `TELEGRAM_BOT_TOKEN`
 	* `useFirstNameInsteadOfUsername`: **EXPERIMENTAL** If set to `false`, the messages sent to Discord will be tagged with the sender's username. If set to `true`, the messages sent to Discord will be tagged with the sender's first name (or nickname). Note that Discord users can't @-mention Telegram users by their first name. Defaults to `false`
 	* `colonAfterSenderName`: Whether or not to put a colon after the name of the sender in messages from Discord to Telegram. If true, the name is displayed `Name:`. If false, it is displayed `Name`. Defaults to false
 	* `skipOldMessages`: Whether or not to skip through all previous messages cached from the telegram-side and start processing new messages ONLY. Defaults to true. Note that there is no guarantee the old messages will arrive at Discord in order
 	* `sendEmojiWithStickers`: Whether or not to send the corresponding emoji when relaying stickers to Discord
-* `discord`: Object authorizing and defining the Discord bot's behaviour
+	* `filterCustomEmojis`: Determines what to do with custom emojis from Discord message before it reaches telegram. Has three states:
+		01. `default` - custom emojis will be transferred without any processing (ex: <:emojisnhead:1102667149627113602> My Text);
+		02. `remove` - custom emojis will be removed from the output (ex: My Text);
+		03. `replace` - custom emojis will be replaced with a definable string. Defined in `replaceCustomEmojisWith` (ex: 🔹 My Text).
+		Defaults to `default`
+	* `replaceCustomEmojisWith`: Determines a string that will be used as a replacement for custom emojis. Anything that can be passed as a string is supported, including emojis. Defaults to `🔹`
+	* `replaceAtSign`: Whether or not to replace `@` sign to something else from Discord message before it reaches. When set to `true` will replace `@` with a string you put into `settings.replaceAtSignWith`. If set to `false` - will do nothing. Defaults to `false`
+	* `replaceAtSignWith`: Determines the string that will be used as a replacement for `@` sign. Anything that can be passed as a string is supported, including emojis. Defaults to `#`
+	* `removeExcessiveSpacings`: **USE WITH CAUTION** Whether or not to remove excessive (2 or more) `whitespaces` from Discord message. Can help to neat your message up if it wasn't particulary untidy in the source. When set to `true` will remove excessive `whitespaces` and replace them with a single `whitespace` instead. If set to `false` - will do nothing. Defaults to `false`
+* `discord`: Object authorizing and defining the Discord bot's behavior
 	* `token`: The Discord bot's token. It is needed for the bot to authenticate to the Discord servers and be able to send and receive messages. If set to `"env"`, TediCross will read the token from the environment variable `DISCORD_BOT_TOKEN`
 	* `skipOldMessages`: Whether or not to skip through all previous messages sent since the bot was last turned off and start processing new messages ONLY. Defaults to true. Note that there is no guarantee the old messages will arrive at Telegram in order. **NOTE:** [Telegram has a limit](https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this) on how quickly a bot can send messages. If there is a big backlog, this will cause problems
 	* `useNickname`: Uses the sending user's nickname instead of username when relaying messages to Telegram
@@ -69,13 +78,13 @@ As mentioned in the step by step installation guide, there is a settings file. H
 * `bridges`: An array containing all your chats and channels. For each object in this array, you should have the following properties:
 	* `name`: A internal name of the chat. Appears in the log
 	* `direction`: Direction of the bridge. "both" for bidirectional, "d2t" for discord-to-telegram, "t2d" for telegram-to-discord
-	* `telegram.chatId`: ID of the chat that is the Telegram end of this bridge. See step 11 on how to aquire it
+	* `telegram.chatId`: ID of the chat that is the Telegram end of this bridge. See step 11 on how to acquire it
 	* `telegram.relayJoinMessages`: Whether or not to relay messages to Discord about people joining the Telegram chat
 	* `telegram.relayLeaveMessages`: Whether or not to relay messages to Discord about people leaving the Telegram chat
 	* `telegram.sendUsernames`: Whether or not to send the sender's name with the messages to Discord
 	* `telegram.relayCommands`: If set to `false`, messages starting with a `/` are not relayed to Discord
 	* `telegram.crossDeleteOnDiscord`: Whether or not to also delete the corresponding message on Discord when one is deleted on Telegram. **NOTE**: See FAQ about deleting messages.
-	* `discord.channelId`: ID of the channel the Discord end of the bridge is in. See step 11 on how to aquire it
+	* `discord.channelId`: ID of the channel the Discord end of the bridge is in. See step 11 on how to acquire it
 	* `discord.relayJoinMessages`: Whether or not to relay messages to Telegram about people joining the Discord chat
 	* `discord.relayLeaveMessages`: Whether or not to relay messages to Telegram about people leaving the Discord chat
 	* `discord.sendUsernames`: Whether or not to send the sender's name with the messages to Telegram
@@ -100,9 +109,9 @@ Not much at all. Almost all the commands are written in the installation guide e
 
 This likely means you are using Ubuntu or another Debian based Linux distro. You get node version 4 when you do `apt-get install nodejs`, and it is called `nodejs` instead of `node`.
 
-TediCross requires node 16 or higher to run. To get node 16 on a debian based system (including Ubuntu), run the following two commands:
+TediCross requires node 16 or higher to run. To get node 16 on a Debian based system (including Ubuntu), run the following two commands:
 
-```
+```bash
 curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -
 sudo apt-get install -y nodejs
 ```
@@ -139,7 +148,7 @@ TediCross supports a theoretically infinite number of bridges, limited only by y
 
 To make more bridges, just copy the one you have, paste it right below and make necessary changes:
 
-```
+```yml
 ...
 bridges:
   - name: Default bridge
@@ -160,7 +169,7 @@ bridges:
 The names of the bridges are practically only log identifiers. They can be whatever string you want them to be. Note, however, that the setting `discord.skipOldMessages` uses the names to know which messages was last sent from which channel, so they should be unique.
 
 Note that the settings file is indentation sensitive. If you do for example
-```
+```yml
   - name: Bridge 1
       direction: both
 ```
@@ -169,9 +178,9 @@ it won't work. The "d" in "direction" must be directly below the "n" in "name". 
 
 ### TediCross spams errors in the console saying "terminated by other long poll or web hook"
 
-This happens when two applications use the same Telegram bot token, or someone has set a webhook on the Telegram bot token. You may simply have accidently launched two instances of TediCross, or someone else has somehow gotten hold of your token
+This happens when two applications use the same Telegram bot token, or someone has set a webhook on the Telegram bot token. You may simply have accidentally launched two instances of TediCross, or someone else has somehow gotten hold of your token
 
-If you haven't accidently launched two instances of TediCross, assume the token is compromised. First, talk to [@BotFather](https://t.me/BotFather) to generate a new token for the bot. Then go to https://api.telegram.org/botTOKEN/deleteWebhook (with `TOKEN` replaced with your actual token) to get rid of any webhook set for the bot. Then update the settings file, and restart the bot
+If you haven't accidentally launched two instances of TediCross, assume the token is compromised. First, talk to [@BotFather](https://t.me/BotFather) to generate a new token for the bot. Then go to https://api.telegram.org/botTOKEN/deleteWebhook (with `TOKEN` replaced with your actual token) to get rid of any webhook set for the bot. Then update the settings file, and restart the bot
 
 
 ### How do I make the bot run automatically when my computer/server starts?
@@ -181,9 +190,9 @@ Take a look in [guides/autostart/](guides/autostart/) of this repo
 
 ### How do I update TediCross?
 
-Most updates are annouced on the [TediCross News channel](https://t.me/TediCross). Only very minor ones are not
+Most updates are announced on the [TediCross News channel](https://t.me/TediCross). Only very minor ones are not
 
-If you cloned the git repo, just do a `git pull`, follwed by `npm install --production`.
+If you cloned the git repo, just do a `git pull`, followed by `npm install --production`.
 
 If you downloaded TediCross as a zip, do step 2, 3 and 4 in the installation guide again. Then move `settings.yaml` and the whole `data/` directory from the old version to the new one and start it.
 
