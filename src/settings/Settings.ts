@@ -135,11 +135,6 @@ export class Settings {
 			"ms"
 		];
 
-		// Check that the settings are indeed in object form
-		if (!(settings instanceof Object)) {
-			throw new Error("`settings` must be an object");
-		}
-
 		// Check that debug is a boolean
 		if (Boolean(settings.debug) !== settings.debug) {
 			throw new Error("`settings.debug` must be a boolean");
@@ -158,11 +153,6 @@ export class Settings {
 		// Check that persistentMessageMap is a boolean
 		if (Boolean(settings.persistentMessageMap) !== settings.persistentMessageMap) {
 			throw new Error("`settings.persistentMessageMap` must be a boolean");
-		}
-
-		// Check that `bridges` is an array
-		if (!(settings.bridges instanceof Array)) {
-			throw new Error("`settings.bridges` must be an array");
 		}
 
 		// Check that the bridges are valid
@@ -201,12 +191,12 @@ export class Settings {
 		const settings = R.clone(rawSettings);
 
 		// 2019-11-08: Turn `ignoreCommands` into `relayCommands`, as `ignoreCommands` accidently did the opposite of what it was supposed to do
-		for (const bridge of settings.bridges) {
+		/*for (const bridge of settings.bridges) {
 			if (R.isNil(bridge.telegram.relayCommands)) {
 				bridge.telegram.relayCommands = bridge.telegram.ignoreCommands!;
 			}
 			delete bridge.telegram.ignoreCommands;
-		}
+		}*/
 
 		// 2019-11-08: Remove the `serverId` setting from the discord part of the bridges
 		for (const bridge of settings.bridges) {

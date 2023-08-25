@@ -1,7 +1,8 @@
-import simpleMarkdown, { SingleASTNode } from "simple-markdown";
+import simpleMarkdown, { Capture, OptionalState, SingleASTNode } from "simple-markdown";
 import { TelegramSettings } from "../settings/TelegramSettings";
 import { escapeHTMLSpecialChars, removeCustomEmojis, replaceAtWith, replaceExcessiveSpaces } from "./helpers";
 import R from "ramda";
+import _ from "underscore";
 
 /***********
  * Helpers *
@@ -13,8 +14,11 @@ const tagMap = new Proxy(
 		u: "u",
 		strong: "b",
 		em: "em",
+		i: "i",
+		del: "strike",
 		inlineCode: "code",
-		codeBlock: "pre"
+		codeBlock: "pre",
+		spoiler: "tg-spoiler"
 	},
 	{
 		get(target: Record<string, any>, prop: string) {
@@ -57,18 +61,54 @@ function extractText(node: Record<string, any>) {
 /*********************
  * Set up the parser *
  *********************/
+const spoilerRule = {
+	// Specify the order in which this rule is to be run
+	order: simpleMarkdown.defaultRules.em.order - 0.5,
 
-// Ignore some rules which only creates trouble
-["list", "heading"].forEach(type => {
-	//@ts-ignore TODO: As per the documentation the defaultRules are only allowed to be read, not written, check for alternative way.
-	simpleMarkdown.defaultRules[type] = {
-		order: Number.POSITIVE_INFINITY,
-		match: () => null // Never match anything in order to ignore this rule
-	};
+	// First we check whether a string matches
+	match: function (source: string) {
+		return /^\|\|([\s\S]+?)\|\|(?!_)/.exec(source);
+	},
+
+	// Then parse this string into a syntax node
+	parse: function (capture: Capture, parse: Function, state: OptionalState) {
+		return {
+			content: parse(capture[1], state)
+		};
+	},
+
+	// Or an html element:
+	// (Note: you may only need to make one of `react:` or
+	// `html:`, as long as you never ask for an outputter
+	// for the other type.)
+	html: function (node: SingleASTNode, output: Function) {
+		return "<spoiler>" + output(node.content) + "</spoiler>";
+	}
+};
+
+const rules = _.extend({}, simpleMarkdown.defaultRules, {
+	// Ignore some rules which only creates trouble
+	list: Object.assign({}, simpleMarkdown.defaultRules.list, {
+		// order: Number.POSITIVE_INFINITY,
+		match: () => null
+	}),
+
+	heading: Object.assign({}, simpleMarkdown.defaultRules.heading, {
+		// order: Number.POSITIVE_INFINITY,
+		match: () => null
+	}),
+
+	spoiler: spoilerRule
 });
 
+const rawBuiltParser = simpleMarkdown.parserFor(rules);
+const mdParse = function (source: string) {
+	const blockSource = source + "\n\n";
+	return rawBuiltParser(blockSource, { inline: false });
+};
+
 // Shorthand for the parser
-const mdParse = simpleMarkdown.defaultBlockParse;
+// const mdParse = simpleMarkdown.defaultBlockParse;
 
 /*****************************
  * Make the parsing function *
@@ -78,6 +118,7 @@ const mdParse = simpleMarkdown.defaultBlockParse;
  * Parse Discord's Markdown format to Telegram-accepted HTML
  *
  * @param text The markdown string to convert
+ * @param settings Telegram settings objcet
  *
  * @return Telegram-friendly HTML
  */
@@ -94,6 +135,7 @@ export function md2html(text: string, settings: TelegramSettings) {
 		.map(rootNode => {
 			// Do some node preprocessing
 			let content = rootNode; // Default to just keeping the node
+
 			if (rootNode.type === "paragraph") {
 				// Remove the outer paragraph, if one exists
 				content = rootNode.content;
@@ -109,11 +151,15 @@ export function md2html(text: string, settings: TelegramSettings) {
 				return html + "\n";
 			} else if (node.type === "hr") {
 				return html + "---";
+			} else if (node.type === "link") {
+				return html + `<a href='${node.target}'>${extractText(node)}</a>`;
 			}
 
 			// Turn the nodes into HTML
 			// Telegram doesn't support nested tags, so only apply tags to the outer nodes
 			// Get the tag type of this node
+			if (node.content === "|spoiler") node.type = "spoiler";
+
 			const tags = tagMap[node.type];
 
 			// Build the HTML

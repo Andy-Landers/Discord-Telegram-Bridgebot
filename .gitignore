@@ -41,10 +41,16 @@ jspm_packages
 
 # Project settings
 settings.yaml
+package-lock.json
 
 # Everything in the data directory
 data/
 
 # Built files
 dist/
-.vscode/settings.json
+
+# Lock files
+yarn.lock
+
+.vscode/
+/todo.txt
